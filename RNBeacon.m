@@ -153,6 +153,30 @@ RCT_EXPORT_METHOD(stopUpdatingLocation)
     [self.locationManager stopUpdatingLocation];
 }
 
+RCT_EXPORT_METHOD(getDesiredLocationAccuracy:(RCTResponseSenderBlock)callback)
+{
+    callback(@[[self convertAccuracyToString: self.locationManager.desiredAccuracy]]);
+}
+
+RCT_EXPORT_METHOD(setDesiredLocationAccuracy:(NSString *) acc)
+{
+    [self.locationManager setDesiredAccuracy:[self convertStringToAccuracy:acc]];
+}
+
+RCT_EXPORT_METHOD(setDistanceFilter:(double) dist)
+{
+    if(dist == 0) {
+        [self.locationManager setDistanceFilter: kCLDistanceFilterNone];
+    } else {
+        [self.locationManager setDistanceFilter: dist];
+    }
+}
+
+RCT_EXPORT_METHOD(getDistanceFilter:(RCTResponseSenderBlock)callback)
+{
+    callback(@[[NSNumber numberWithDouble: self.locationManager.distanceFilter]]);
+}
+
 -(NSString *)nameForAuthorizationStatus:(CLAuthorizationStatus)authorizationStatus
 {
     switch (authorizationStatus) {
@@ -171,6 +195,55 @@ RCT_EXPORT_METHOD(stopUpdatingLocation)
         case kCLAuthorizationStatusRestricted:
             return @"restricted";
     }
+}
+
+-(CLLocationAccuracy)convertStringToAccuracy:(NSString*)str
+{
+    if([str isEqualToString: @"best"]) {
+        return kCLLocationAccuracyBest;
+        
+    } else if([str isEqualToString: @"bestForNavigation"]) {
+        return kCLLocationAccuracyBestForNavigation;
+        
+    } else if([str isEqualToString: @"hundredMeters"]) {
+        return kCLLocationAccuracyHundredMeters;
+        
+    } else if([str isEqualToString: @"kilometer"]) {
+        return kCLLocationAccuracyKilometer;
+        
+    } else if([str isEqualToString: @"nearestTenMeters"]) {
+        return kCLLocationAccuracyNearestTenMeters;
+        
+    } else if([str isEqualToString: @"threeKilometers"]) {
+        return kCLLocationAccuracyThreeKilometers;
+        
+    }
+    
+    return kCLLocationAccuracyBestForNavigation;
+}
+
+-(NSString *)convertAccuracyToString:(CLLocationAccuracy)accuracy
+{
+    if(accuracy == kCLLocationAccuracyBest) {
+        return @"best";
+        
+    } else if(accuracy == kCLLocationAccuracyBestForNavigation) {
+        return @"bestForNavigation";
+        
+    } else if(accuracy == kCLLocationAccuracyHundredMeters) {
+        return @"hundredMeters";
+        
+    } else if(accuracy == kCLLocationAccuracyKilometer) {
+        return @"kilometer";
+        
+    } else if(accuracy == kCLLocationAccuracyNearestTenMeters) {
+        return @"nearestTenMeters";
+        
+    } else if(accuracy == kCLLocationAccuracyThreeKilometers) {
+        return @"threeKilometers";
+    }
+    
+    return @"undefined";
 }
 
 -(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
@@ -238,6 +311,29 @@ RCT_EXPORT_METHOD(stopUpdatingLocation)
                             };
     
     [self.bridge.eventDispatcher sendDeviceEventWithName:@"regionDidExit" body:event];
+}
+
+- (void) locationManager:(CLLocationManager *)manager
+       didDetermineState:(CLRegionState)state
+               forRegion:(CLRegion *)region {
+    
+}
+
+- (void) locationManager:(CLLocationManager *)manager
+      didUpdateLocations:(NSArray<CLLocation *> *)locations {
+    
+    CLLocation* loc = locations.lastObject;
+    NSDictionary *event = @{
+                            @"latitude": [NSNumber numberWithDouble: loc.coordinate.latitude],
+                            @"longitude": [NSNumber numberWithDouble: loc.coordinate.longitude],
+                            @"altitude": [NSNumber numberWithDouble: loc.altitude],
+                            @"horizontalAccuracy": [NSNumber numberWithDouble: loc.horizontalAccuracy],
+                            @"verticalAccuracy": [NSNumber numberWithDouble: loc.verticalAccuracy],
+                            @"timestamp": [NSNumber numberWithDouble: loc.timestamp.timeIntervalSince1970],
+                            @"description": loc.description,
+                            };
+    
+    [self.bridge.eventDispatcher sendDeviceEventWithName:@"locationUpdated" body:event];
 }
 
 @end
